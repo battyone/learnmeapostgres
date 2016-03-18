@@ -98,9 +98,11 @@ Putting this together was essentially a process of welding together several Stac
 
 The original answers are extremely instructive. Note that the random sampling suggestion works only for a known-in-advance, fixed table name. It was precisely the generalization to accepting arbitrary table names that motivated me to pursue this.
 
--[Best way to select random rows PostgreSQL](http://stackoverflow.com/a/8675160/567620)
--[Refactor a PL/pgSQL function to return the output of various SELECT queries](http://stackoverflow.com/a/11751557/567620)
--[Table name as a PostgreSQL function parameter](http://stackoverflow.com/a/10711349/567620)
+*[Best way to select random rows PostgreSQL](http://stackoverflow.com/a/8675160/567620)
+
+*[Refactor a PL/pgSQL function to return the output of various SELECT queries](http://stackoverflow.com/a/11751557/567620)
+
+*[Table name as a PostgreSQL function parameter](http://stackoverflow.com/a/10711349/567620)
 
 ## more details
 Internally, there are a number of interesting facts about this implementation.
