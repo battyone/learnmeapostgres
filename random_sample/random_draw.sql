@@ -1,4 +1,5 @@
 
+
 -- Obtain a formatted string of column names from a given table.
 CREATE OR REPLACE FUNCTION _get_col_names(_tbl anyelement)
     RETURNS text AS
@@ -38,16 +39,10 @@ BEGIN
 
    RETURN QUERY EXECUTE format('
    WITH RECURSIVE 
-       __estimate as (
-           SELECT c.reltuples * $3
-           FROM   pg_class c
-           WHERE  c.oid = %1$L::regclass
-       ),
-
        random_pick AS (
            SELECT *
            FROM (
-               SELECT 1 + trunc( random() * $4 )::int
+               SELECT 1 + trunc( random() * $3 )::int
                FROM   generate_series(1, $1) g
                LIMIT  $1           
            ) r ( %2$I )
@@ -57,7 +52,7 @@ BEGIN
            UNION                        
            SELECT *
            FROM (
-               SELECT 1 + trunc( random() * $4 )::int
+               SELECT 1 + trunc( random() * $3 )::int
                FROM   random_pick            -- just to make it recursive
                LIMIT  $2                     -- hint for query planner
            ) r ( %2$I )
@@ -67,7 +62,7 @@ BEGIN
    SELECT *
    FROM   random_pick
    LIMIT  $2;', pg_typeof(_tbl), _pk_name)
-   USING _surplus, _limit, _gaps, _estimate;
+   USING _surplus, _limit, _estimate;
 END
 $func$ LANGUAGE plpgsql;
 
@@ -76,18 +71,11 @@ $func$ LANGUAGE plpgsql;
 -- Select a random subsample from any arbitrary table, whether or not the
 -- table has an integer index/key. Note: this can be inefficient.
 CREATE OR REPLACE FUNCTION _random_select(_tbl anyelement,
-                                          _limit int = 1000, 
-                                          _gaps real = 1.03)
+                                          _limit int = 1000)
     RETURNS SETOF anyelement AS
 $func$
 DECLARE
-    _surplus  int := _limit * _gaps;
     _original_columns text := _get_col_names(_tbl);
-    _estimate int := (
-        SELECT c.reltuples * _gaps
-        FROM   pg_class c
-        WHERE  c.oid = format('%1$I', pg_typeof(_tbl))::regclass
-   );
 BEGIN
 
    RETURN QUERY EXECUTE format('
@@ -100,7 +88,7 @@ BEGIN
        random_pick AS (
            SELECT *
            FROM (
-               SELECT 1 + trunc( random() * $4 )::int
+               SELECT 1 + trunc( random() * $1 )::int
                FROM   generate_series(1, $1) g
                LIMIT  $1           
            ) r1 ( row_num )
@@ -110,16 +98,16 @@ BEGIN
            UNION                        
            SELECT *
            FROM (
-               SELECT 1 + trunc( random() * $4 )::int
+               SELECT 1 + trunc( random() * $1 )::int
                FROM   random_pick            
-               LIMIT  $2                     
+               LIMIT  $1                     
            ) r1 ( row_num )
            JOIN  _with_row_nums r2
            USING ( row_num )                    
        )
    SELECT %2$s
    FROM   random_pick
-   LIMIT  $2;', pg_typeof(_tbl), _original_columns)
-   USING _surplus, _limit, _gaps, _estimate;
+   LIMIT  $1;', pg_typeof(_tbl), _original_columns)
+   USING _limit;
 END
 $func$ LANGUAGE plpgsql;
